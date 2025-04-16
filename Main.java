@@ -1,56 +1,52 @@
+import org.xml.sax.*;
+import org.xml.sax.helpers.DefaultHandler;
 import javax.xml.parsers.*;
-import org.w3c.dom.*;
 import com.google.gson.JsonObject;
 import java.io.File;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
         try {
             Scanner input = new Scanner(System.in);
             System.out.print("Enter field(s) to display as JSON: ");
-            String line = input.nextLine().trim();
-            if (line.isEmpty()) {
-                System.out.println("No fields entered. Exiting.");
-                return;
-            }
+            String[] fields = input.nextLine().split(",");
+            Set<String> fieldSet = new HashSet<>();
+            for (String f : fields) fieldSet.add(f.trim());
 
-            String[] fields = line.split(",");
-            for (int i = 0; i < fields.length; i++) fields[i] = fields[i].trim();
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            SAXParser parser = factory.newSAXParser();
 
-            File xmlFile = new File("data.xml");
-            if (!xmlFile.exists()) {
-                System.out.println("Error: XML file not found.");
-                return;
-            }
+            parser.parse(new File("data.xml"), new DefaultHandler() {
+                JsonObject json = null;
+                String currentElement = "";
 
-            DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-            Document doc = builder.parse(xmlFile);
-            doc.getDocumentElement().normalize();
+                public void startElement(String uri, String localName, String qName, Attributes attributes) {
+                    if (qName.equals("user")) {
+                        json = new JsonObject();
+                    }
+                    currentElement = qName;
+                }
 
-            NodeList users = doc.getElementsByTagName("user");
-
-            if (users.getLength() == 0) {
-                System.out.println("No user data found in XML.");
-                return;
-            }
-
-            for (int i = 0; i < users.getLength(); i++) {
-                Element user = (Element) users.item(i);
-                JsonObject json = new JsonObject();
-
-                for (String field : fields) {
-                    NodeList fieldNode = user.getElementsByTagName(field);
-                    if (fieldNode.getLength() > 0) {
-                        json.addProperty(field, fieldNode.item(0).getTextContent());
-                    } else {
-                        json.addProperty(field, "[Not found]");
+                public void characters(char[] ch, int start, int length) {
+                    if (json != null && fieldSet.contains(currentElement)) {
+                        String value = new String(ch, start, length).trim();
+                        if (!value.isEmpty()) {
+                            json.addProperty(currentElement, value);
+                        }
                     }
                 }
-                System.out.println(json.toString());
-            }
+
+                public void endElement(String uri, String localName, String qName) {
+                    if (qName.equals("user") && json != null) {
+                        System.out.println(json.toString());
+                        json = null;
+                    }
+                    currentElement = "";
+                }
+            });
+
         } catch (Exception e) {
-            System.out.println("An error occurred while parsing the XML.");
             e.printStackTrace();
         }
     }

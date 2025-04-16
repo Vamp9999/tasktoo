@@ -1,5 +1,6 @@
 import javax.xml.parsers.*;
 import org.w3c.dom.*;
+import com.google.gson.JsonObject;
 import java.io.File;
 import java.util.Scanner;
 
@@ -7,12 +8,9 @@ public class Main {
     public static void main(String[] args) {
         try {
             Scanner input = new Scanner(System.in);
-            System.out.print("Enter field(s) to display (comma separated): ");
-            String[] selectedFields = input.nextLine().split(",");
-
-            for (int i = 0; i < selectedFields.length; i++) {
-                selectedFields[i] = selectedFields[i].trim();
-            }
+            System.out.print("Enter field(s) to display as JSON: ");
+            String[] fields = input.nextLine().split(",");
+            for (int i = 0; i < fields.length; i++) fields[i] = fields[i].trim();
 
             File xmlFile = new File("data.xml");
             DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -23,16 +21,17 @@ public class Main {
 
             for (int i = 0; i < users.getLength(); i++) {
                 Element user = (Element) users.item(i);
-                System.out.println("User " + (i + 1) + ":");
-                for (String field : selectedFields) {
+                JsonObject json = new JsonObject();
+
+                for (String field : fields) {
                     NodeList fieldNode = user.getElementsByTagName(field);
                     if (fieldNode.getLength() > 0) {
-                        System.out.println(field + ": " + fieldNode.item(0).getTextContent());
+                        json.addProperty(field, fieldNode.item(0).getTextContent());
                     } else {
-                        System.out.println(field + ": [Not found]");
+                        json.addProperty(field, "[Not found]");
                     }
                 }
-                System.out.println();
+                System.out.println(json.toString());
             }
         } catch (Exception e) {
             e.printStackTrace();

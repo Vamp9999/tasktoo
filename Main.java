@@ -9,15 +9,31 @@ public class Main {
         try {
             Scanner input = new Scanner(System.in);
             System.out.print("Enter field(s) to display as JSON: ");
-            String[] fields = input.nextLine().split(",");
+            String line = input.nextLine().trim();
+            if (line.isEmpty()) {
+                System.out.println("No fields entered. Exiting.");
+                return;
+            }
+
+            String[] fields = line.split(",");
             for (int i = 0; i < fields.length; i++) fields[i] = fields[i].trim();
 
             File xmlFile = new File("data.xml");
+            if (!xmlFile.exists()) {
+                System.out.println("Error: XML file not found.");
+                return;
+            }
+
             DocumentBuilder builder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
             Document doc = builder.parse(xmlFile);
             doc.getDocumentElement().normalize();
 
             NodeList users = doc.getElementsByTagName("user");
+
+            if (users.getLength() == 0) {
+                System.out.println("No user data found in XML.");
+                return;
+            }
 
             for (int i = 0; i < users.getLength(); i++) {
                 Element user = (Element) users.item(i);
@@ -34,6 +50,7 @@ public class Main {
                 System.out.println(json.toString());
             }
         } catch (Exception e) {
+            System.out.println("An error occurred while parsing the XML.");
             e.printStackTrace();
         }
     }
